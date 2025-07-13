@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Malla Curricular Interactiva</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .level {
+            background-color: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            position: relative;
+        }
+        
+        .level h2 {
+            color: #2c3e50;
+            margin-top: 0;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #ecf0f1;
+        }
+        
+        .materias-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+        }
+        
+        .materia {
+            background-color: #ecf0f1;
+            padding: 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .materia:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .materia.aprobada {
+            background-color: #d1f7d6;
+            color: #27ae60;
+        }
+        
+        .materia.bloqueada {
+            color: #7f8c8d;
+            background-color: #f1f1f1;
+            position: relative;
+        }
+        
+        .materia.aprobable {
+            background-color: #d4e6f1;
+            cursor: pointer;
+        }
+        
+        .bloqueo-linea {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: repeating-linear-gradient(
+                135deg,
+                rgba(231, 76, 60, 0.3),
+                rgba(231, 76, 60, 0.3) 5px,
+                rgba(231, 76, 60, 0.5) 5px,
+                rgba(231, 76, 60, 0.5) 10px
+            );
+            display: none;
+            z-index: 10;
+            pointer-events: none;
+        }
+        
+        .materia.bloqueada .bloqueo-linea {
+            display: block;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 100;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .modal-content {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            position: relative;
+        }
+        
+        .close-modal {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            font-size: 24px;
+            cursor: pointer;
+        }
+        
+        .btn {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: background-color 0.3s;
+        }
+        
+        .btn:hover {
+            background-color: #2980b9;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- La malla se generará aquí dinámicamente -->
+    </div>
+
+    <!-- Modal para mostrar cuando no se cumplen los requisitos -->
+    <div class="modal" id="modal">
+        <div class="modal-content">
+            <span class="close-modal" id="close-modal">&times;</span>
+            <h2>No puedes cursar esta materia aún</h2>
+            <p>Debes aprobar las materias correlativas requeridas antes de poder cursar esta materia.</p>
+            <button class="btn" id="accept-modal">Aceptar</button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Cargar el estado de las materias desde el localStorage
+            const estadoMaterias = JSON.parse(localStorage.getItem("estadoMaterias") || "{}");
+
+            // Datos de las materias (de 1º a 6º año)
+            const materias = [
+                // Primer Año
+                {
+                    anio: 1,
+                    materias: [
+                        { id: "materia1", nombre: "Anatomía", previas: [] },
+                        { id: "materia2", nombre: "Histologia", previas: [] },
+                        { id: "materia3", nombre: "Practica Hospitalar I", previas: [] },
+                        { id: "materia4", nombre: "Dx por Imágenes I", previas: [] },
+                        { id: "materia5", nombre: "Humanistica I", previas: [] },
+                        { id: "materia6", nombre: "Cibernetica I", previas: [] },
+                        { id: "materia7", nombre: "Cirugia Basica I", previas: [] },
+                        { id: "materia8", nombre: "Ingles I", previas: [] },
+                        { id: "materia9", nombre: "Italiano I", previas: [] },
+                    ],
+                },
+                // Segundo Año
+                {
+                    anio: 2,
+                    materias: [
+                        { id: "materia10", nombre: "Química Biológica", previas: [] },
+                        { id: "materia11", nombre: "Fisiologia", previas: [] },
+                        { id: "materia12", nombre: "Practica Hospitalar II", previas: ["materia3"] },
+                        { id: "materia13", nombre: "Dx por Imágenes II", previas: ["materia4"] },
+                        { id: "materia14", nombre: "Humanistica II", previas: ["materia5"] },
+                        { id: "materia15", nombre: "Cibernetica II", previas: ["materia6"] },
+                        { id: "materia16", nombre: "Cirugia Basica II", previas: ["materia7"] },
+                        { id: "materia17", nombre: "Ingles II", previas: ["materia8"] },
+                        { id: "materia18", nombre: "Italiano II", previas: ["materia9"] },
+                    ],
+                },
+                // Tercer Año
+                {
+                    anio: 3,
+                    materias: [
+                        { id: "materia19", nombre: "Anatomía Patológica", previas: [] },
+                        { id: "materia20", nombre: "Farmacología", previas: [] },
+                        { id: "materia21", nombre: "Microbiologia", previas: [] },
+                        { id: "materia22", nombre: "Practica Hospitalar III", previas: ["materia12"] },
+                        { id: "materia23", nombre: "Dx por Imágenes III", previas: ["materia13"] },
+                        { id: "materia24", nombre: "Humanistica III", previas: ["materia14"] },
+                        { id: "materia25", nombre: "Cibernetica III", previas: ["materia15"] },
+                        { id: "materia26", nombre: "Cirugia Basica III", previas: ["materia16"] },
+                        { id: "materia27", nombre: "Ingles III", previas: ["materia17"] },
+                        { id: "materia28", nombre: "Italiano III", previas: ["materia18"] },
+                    ],
+                },
+                // Cuarto Año
+                {
+                    anio: 4,
+                    materias: [
+                        { id: "materia29", nombre: "Medicina Interna I", previas: ["materia19","materia20","materia21"] },
+                        { id: "materia30", nombre: "Clínica Quirúrgica I", previas: ["materia19","materia20","materia21"] },
+                        { id: "materia31", nombre: "Practica Hospitalar IV", previas: ["materia22"] },
+                        { id: "materia32", nombre: "Dx por Imágenes IV", previas: ["materia23"] },
+                        { id: "materia33", nombre: "Humanistica IV", previas: ["materia24"] },
+                        { id: "materia34", nombre: "Cibernetica IV", previas: ["materia25"] },
+                        { id: "materia35", nombre: "Cirugia Basica IV", previas: ["materia26"] },
+                        { id: "materia36", nombre: "Ingles IV", previas: ["materia27"] },
+                        { id: "materia37", nombre: "Italiano IV", previas: ["materia28"] },
+                    ],
+                },
+                // Quinto Año
+                {
+                    anio: 5,
+                    materias: [
+                        { id: "materia38", nombre: "Medicina Interna II", previas: ["materia29","materia30"] },
+                        { id: "materia39", nombre: "Clínica Quirúrgica II", previas: ["materia29","materia30"] },
+                        { id: "materia40", nombre: "Pediatria", previas: ["materia29","materia30"] },
+                        { id: "materia41", nombre: "Tocoginecologia", previas: ["materia29","materia30"] },
+                        { id: "materia42", nombre: "Medicina Legal", previas: ["materia29","materia30"] },
+                        { id: "materia43", nombre: "Practica Hospitalar V", previas: ["materia31"] },
+                        { id: "materia44", nombre: "Dx por Imágenes V", previas: ["materia32"] },
+                        { id: "materia45", nombre: "Humanistica V", previas: ["materia33"] },
+                        { id: "materia46", nombre: "Cibernetica V", previas: ["materia34"] },
+                        { id: "materia47", nombre: "Cirugia Basica V", previas: ["materia35"] },
+                        { id: "materia48", nombre: "Ingles V", previas: ["materia36"] },
+                        { id: "materia49", nombre: "Italiano V", previas: ["materia37"] },
+                    ],
+                },
+                // Sexto Año
+                {
+                    anio: 6,
+                    materias: [
+                        { id: "materia50", nombre: "PFO", previas: ["materia38","materia39","materia40","materia41","materia42"] },
+                    ],
+                },
+            ];
+
+            // Helper para determinar si una materia es central (sin prerequisitos específicos)
+            function esMateriaCentral(materiaObj) {
+                const materiasAnio = materias.find(a => a.anio === materiaObj.anio)?.materias || [];
+                const materia = materiasAnio.find(m => m.id === materiaObj.id);
+                // Materias centrales son las que no tienen requisitos específicos
+                return materia && (materia.previas === undefined || materia.previas.length === 0);
+            }
+
+            // Función para verificar si una materia puede ser aprobada
+            function puedeCursar(materiaObj) {
+                // Las materias de primer año nunca están bloqueadas
+                if (materiaObj.anio === 1) return true;
+                
+                // Para todos los cursos, verificar si todas las materia del año anterior fueron aprobadas
+                if (materiaObj.anio > 1) {
+                    const materiasAnioAnterior = materias.find(a => a.anio === materiaObj.anio - 1).materias;
+                    const noAprobadas = materiasAnioAnterior.filter(m => !estadoMaterias[m.id]).length;
+                    
+                    if (noAprobadas > 0) {
+                        // Si es materia central, requiere TODAS aprobadas
+                        if (esMateriaCentral(materiaObj)) {
+                            return false;
+                        }
+                        // Si es materia lateral, permite máximo 1 no aprobada
+                        else if (noAprobadas > 1 || !estadoMaterias[materiaObj.previas[0]]) {
+                            return false;
+                        }
+                    }
+                }
+                
+                // Verificar prerequisitos específicos si existen
+                if (materiaObj.previas && materiaObj.previas.length > 0) {
+                    return materiaObj.previas.every(previa => estadoMaterias[previa]);
+                }
+                
+                return true;
+            }
+
+            // Función para crear la malla interactiva
+            function crearMalla() {
+                const contenedor = document.querySelector(".container");
+                contenedor.innerHTML = "";
+
+                materias.forEach(anio => {
+                    const divAnio = document.createElement("div");
+                    divAnio.className = "level";
+
+                    const h2 = document.createElement("h2");
+                    h2.textContent = `${anio.anio}º AÑO`;
+                    divAnio.appendChild(h2);
+
+                    const divMaterias = document.createElement("div");
+                    divMaterias.className = "materias-container";
+
+                    anio.materias.forEach(materia => {
+                        const divMat = document.createElement("div");
+                        divMat.className = "materia";
+                        divMat.id = materia.id;
+                        divMat.textContent = materia.nombre;
+
+                        // Verificar si está aprobada
+                        if (estadoMaterias[materia.id]) {
+                            divMat.classList.add("aprobada");
+                        }
+
+                        // Verificar si puede ser cursada
+                        const puede = puedeCursar({
+                            id: materia.id,
+                            anio: anio.anio,
+                            nombre: materia.nombre,
+                            previas: materia.previas
+                        });
+
+                        if (!puede && materia.anio === 1) {
+                            divMat.classList.add("aprobable");
+                        } else if (!puede) {
+                            divMat.classList.add("bloqueada");
+                            const bloqueoLinea = document.createElement("div");
+                            bloqueoLinea.className = "bloqueo-linea";
+                            divMat.appendChild(bloqueoLinea);
+                        }
+
+                        divMat.addEventListener("click", function() {
+                            if (divMat.classList.contains("bloqueada")) {
+                                mostrarModal();
+                                return;
+                            }
+
+                            if (divMat.classList.contains("aprobada")) {
+                                divMat.classList.remove("aprobada");
+                                delete estadoMaterias[materia.id];
+                            } else {
+                                divMat.classList.add("aprobada");
+                                estadoMaterias[materia.id] = true;
+                            }
+
+                            localStorage.setItem("estadoMaterias", JSON.stringify(estadoMaterias));
+                            // Remove all blocked states first
+                            document.querySelectorAll('.bloqueada').forEach(el => {
+                                el.classList.remove('bloqueada');
+                                const linea = el.querySelector('.bloqueo-linea');
+                                if (linea) linea.remove();
+                            });
+                            // Then re-evaluate blocking for all courses
+                            crearMalla();
+                        });
+
+                        divMaterias.appendChild(divMat);
+                    });
+
+                    divAnio.appendChild(divMaterias);
+                    contenedor.appendChild(divAnio);
+                });
+            }
+
+            // Función para mostrar el modal
+            function mostrarModal() {
+                const modal = document.getElementById("modal");
+                modal.style.display = "flex";
+            }
+
+            // Función para cerrar el modal
+            function cerrarModal() {
+                const modal = document.getElementById("modal");
+                modal.style.display = "none";
+            }
+
+            // Event listeners para el modal
+            document.getElementById("accept-modal").addEventListener("click", cerrarModal);
+            document.getElementById("close-modal").addEventListener("click", cerrarModal);
+
+            // Crear la malla inicial
+            crearMalla();
+        });
+    </script>
+</body>
+</html>
